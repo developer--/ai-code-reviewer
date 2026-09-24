@@ -1,0 +1,1081 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repo Activity</title>
+<style>
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #e2e5ea;
+  --text: #1c2027; --muted: #626b78; --faint: #8a93a0;
+  --accent: #2f6fd6; --accent-weak: #e7effc;
+  --good: #1f8a4c; --good-weak: #e3f4ea; --warn: #b26a00; --warn-weak: #fdf1dc;
+  --bad: #c23b3b; --bad-weak: #fbe7e7; --shadow: 0 8px 30px rgba(20,30,50,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --surface: #1a1e24; --surface-2: #222730; --border: #2e343e;
+    --text: #e7eaef; --muted: #9aa3b0; --faint: #707985;
+    --accent: #6ea0ff; --accent-weak: #1f2c45;
+    --good: #4cc27f; --good-weak: #173226; --warn: #f0ae45; --warn-weak: #3a2c14;
+    --bad: #ff7a7a; --bad-weak: #3d1f22; --shadow: 0 8px 30px rgba(0,0,0,.5);
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif; }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+header { display: flex; align-items: center; gap: 12px; padding: 14px 24px;
+  background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+.repo-chip { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spacer { flex: 1; }
+.btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 12px;
+  cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.07); }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+
+main { padding: 20px 24px 60px; max-width: 1400px; margin: 0 auto; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+.field { display: flex; align-items: center; gap: 8px; color: var(--muted); }
+select, input[type=text], input[type=password], input[type=search] { background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; }
+input:focus, select:focus { outline: 2px solid var(--accent-weak); border-color: var(--accent); }
+.toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); }
+.meta { color: var(--faint); font-size: 12.5px; }
+
+.progress { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 16px; }
+.progress.show { display: block; }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+.bar > i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+.bar.indeterminate > i { width: 30%; animation: slide 1.2s infinite ease-in-out; }
+@keyframes slide { from { margin-left: -30%; } to { margin-left: 100%; } }
+
+.alert { background: var(--bad-weak); color: var(--bad); border-radius: 10px; padding: 10px 14px;
+  margin-bottom: 16px; display: none; }
+.alert.show { display: block; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .v { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile .l { color: var(--muted); font-size: 12.5px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 14px;
+  border-bottom: 1px solid var(--border); }
+.toolbar input[type=search] { min-width: 220px; }
+.lookup { position: relative; }
+.lookup-results { position: absolute; top: 40px; left: 0; min-width: 320px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); z-index: 10; display: none; max-height: 320px; overflow: auto; }
+.lookup-results.show { display: block; }
+.lookup-results div { padding: 8px 12px; cursor: pointer; }
+.lookup-results div:hover { background: var(--surface-2); }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em;
+  cursor: pointer; user-select: none; background: var(--surface); position: sticky; top: 0; }
+th.num, td.num { text-align: right; font-variant-numeric: tabular-nums; }
+th .arrow { opacity: .7; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: 0; }
+.who { display: flex; align-items: center; gap: 10px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px;
+  font-weight: 650; color: #fff; flex: none; }
+.who .n { font-weight: 560; }
+.who .u { color: var(--faint); font-size: 12px; }
+.rel { font-variant-numeric: tabular-nums; }
+.rel small { color: var(--faint); display: block; font-size: 11.5px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.fresh { background: var(--good); } .stale { background: var(--warn); } .cold { background: var(--bad); } .none { background: var(--border); }
+.zero { color: var(--faint); }
+.pills { display: inline-flex; gap: 4px; }
+.pill { font-size: 11.5px; padding: 1px 7px; border-radius: 999px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pill.good { background: var(--good-weak); color: var(--good); }
+.pill.warn { background: var(--warn-weak); color: var(--warn); }
+.pill.bad { background: var(--bad-weak); color: var(--bad); }
+.pill.neutral { background: var(--surface-2); color: var(--muted); }
+.empty { padding: 50px 20px; text-align: center; color: var(--muted); }
+
+.drawer-bg { position: fixed; inset: 0; background: rgba(10,15,25,.35); display: none; z-index: 20; }
+.drawer-bg.show { display: block; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(640px, 100vw); background: var(--surface);
+  box-shadow: var(--shadow); z-index: 21; transform: translateX(100%); transition: transform .2s; overflow-y: auto; }
+.drawer.show { transform: none; }
+.drawer-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); }
+.drawer-head .avatar { width: 42px; height: 42px; font-size: 15px; }
+.drawer-body { padding: 18px 22px 40px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.stat .v { font-weight: 650; font-size: 15px; }
+.stat .l { color: var(--muted); font-size: 12px; }
+h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 22px 0 8px; }
+.list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.item { padding: 9px 12px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: baseline; }
+.item:last-child { border-bottom: 0; }
+.item .main { flex: 1; min-width: 0; }
+.item .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.item .s { color: var(--faint); font-size: 12px; }
+.item .d { color: var(--muted); font-size: 12.5px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.note { color: var(--faint); font-size: 12.5px; margin: 6px 0 0; }
+
+.modal-bg { position: fixed; inset: 0; background: rgba(10,15,25,.45); display: none; z-index: 30;
+  align-items: center; justify-content: center; padding: 16px; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); width: min(560px, 100%); padding: 22px; }
+.modal h2 { margin: 0 0 16px; font-size: 17px; }
+.modal label { display: block; font-weight: 560; margin: 14px 0 6px; }
+.modal input[type=text], .modal input[type=password] { width: 100%; }
+.modal .hint { color: var(--muted); font-size: 12.5px; margin-top: 5px; }
+.radio { display: flex; gap: 18px; }
+.radio label { font-weight: 400; margin: 0; display: flex; gap: 6px; align-items: center; }
+.modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; align-items: center; }
+.status-line { font-size: 13px; margin-right: auto; }
+.status-line.ok { color: var(--good); } .status-line.err { color: var(--bad); }
+
+/* leaderboard: categorical slots 1-4 of the reference palette, in fixed order */
+:root { --s-reviews: #2a78d6; --s-created: #eb6834; --s-comments: #1baf7a; --s-pushes: #eda100; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --s-reviews: #3987e5; --s-created: #d95926; --s-comments: #199e70; --s-pushes: #c98500; }
+}
+:root[data-theme="dark"] { --s-reviews: #3987e5; --s-created: #d95926; --s-comments: #199e70; --s-pushes: #c98500; }
+.tabs { display: inline-flex; background: var(--surface-2); border-radius: 9px; padding: 3px; margin-bottom: 12px; }
+.tabs button { border: 0; background: transparent; padding: 6px 14px; border-radius: 7px; cursor: pointer; color: var(--muted); }
+.tabs button.on { background: var(--surface); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.hidden { display: none !important; }
+.lb-controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.weights { display: inline-flex; gap: 10px; align-items: center; color: var(--muted); font-size: 12.5px; flex-wrap: wrap; }
+.weights input { width: 48px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); text-align: right; }
+.legend { display: inline-flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.legend i, .weights i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.lb { padding: 6px 0; }
+.lb-row { display: grid; grid-template-columns: 44px minmax(180px, 260px) 1fr 72px; gap: 12px; align-items: center;
+  padding: 8px 14px; cursor: pointer; }
+.lb-row:hover { background: var(--surface-2); }
+.rank { font-weight: 650; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; font-size: 15px; }
+.rank.top { font-size: 20px; }
+.lb-bar { display: flex; gap: 2px; height: 14px; }
+.lb-bar span { height: 100%; min-width: 2px; }
+.lb-bar span:first-child { border-radius: 4px 0 0 4px; }
+.lb-bar span:last-child { border-radius: 0 4px 4px 0; }
+.lb-bar span:only-child { border-radius: 4px; }
+.lb-sub { color: var(--faint); font-size: 12px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.score { text-align: right; font-weight: 650; font-size: 16px; font-variant-numeric: tabular-nums; }
+.score small { display: block; color: var(--faint); font-weight: 400; font-size: 11px; }
+.tip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; z-index: 40; display: none; }
+.tip b { font-variant-numeric: tabular-nums; }
+
+.pr-title { font-weight: 560; white-space: normal; max-width: 560px; display: block; }
+.pr-sub { color: var(--faint); font-size: 12px; white-space: normal; }
+td.wrap { white-space: normal; }
+.draft { font-size: 11px; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; color: var(--muted); margin-right: 6px; }
+.btn.small { padding: 4px 10px; font-size: 13px; }
+.ai-cell { display: flex; gap: 6px; align-items: center; }
+.runlog { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); border-radius: 10px;
+  padding: 10px 12px; max-height: 260px; overflow: auto; color: var(--muted); }
+.runlog div { white-space: pre-wrap; word-break: break-all; }
+.runlog div:last-child { color: var(--text); }
+.finding { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+.finding .fh { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.finding .ft { font-weight: 600; }
+.finding .loc { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; display: block; overflow-wrap: anywhere; }
+.finding p { margin: 8px 0 0; }
+.finding pre, .summary pre { background: var(--surface-2); border-radius: 8px; padding: 10px; overflow: auto;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 8px 0 0; white-space: pre; }
+code { font: 12.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--surface-2); padding: 1px 4px; border-radius: 4px; }
+.summary { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; white-space: pre-wrap; }
+.spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: rot .8s linear infinite; vertical-align: -1px; }
+.qa { border-left: 3px solid var(--border); padding: 4px 0 4px 12px; margin: 10px 0 14px; }
+.qa .q { margin-bottom: 6px; }
+.qa .a { white-space: pre-wrap; }
+#askInput { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit; resize: vertical; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg);
+  padding: 10px 16px; border-radius: 10px; z-index: 50; box-shadow: var(--shadow); }
+.finding .fh input { margin: 0; }
+@keyframes rot { to { transform: rotate(360deg); } }
+
+@media (max-width: 700px) {
+  .lb-row { grid-template-columns: 34px 1fr 56px; }
+  .lb-row .lb-track { grid-column: 2 / 4; }
+  header, main { padding-left: 16px; padding-right: 16px; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Repo Activity</h1>
+  <span class="repo-chip" id="repoChip"></span>
+  <span class="spacer"></span>
+  <button class="btn" id="settingsBtn">Settings</button>
+  <button class="btn ghost" id="quitBtn" title="Stop the local server">Quit</button>
+</header>
+
+<main>
+  <div class="controls">
+    <label class="field">Window
+      <select id="days">
+        <option value="14">Last 14 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="60">Last 2 months</option>
+        <option value="90">Last 3 months</option>
+        <option value="180">Last 6 months</option>
+      </select>
+    </label>
+    <label class="toggle" title="Reads every PR's threads: exact review dates and comment counts. Slower.">
+      <input type="checkbox" id="deep"> Exact review dates &amp; comments
+    </label>
+    <button class="btn primary" id="scanBtn">Scan repository</button>
+    <span class="meta" id="scanMeta"></span>
+  </div>
+
+  <div class="alert" id="alert"></div>
+  <div class="progress" id="progress">
+    <div id="progressText">Starting…</div>
+    <div class="bar indeterminate" id="bar"><i></i></div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="on" data-tab="leaderboard" role="tab">Leaderboard</button>
+    <button data-tab="people" role="tab">All people</button>
+    <button data-tab="prs" role="tab">Active PRs</button>
+  </div>
+
+  <div class="card hidden" id="prsCard">
+    <div class="toolbar">
+      <input type="search" id="prFilter" placeholder="Filter by title, author, branch…">
+      <label class="toggle"><input type="checkbox" id="hideDrafts" checked> Hide drafts</label>
+      <label class="field">AI model
+        <select id="reviewModel" title="Model used for AI reviews (saved as the default)">
+          <option value="">CLI default</option>
+          <option value="claude-fable-5-1">Fable 5.1</option>
+          <option value="claude-opus-5-5">Opus 5.5</option>
+          <option value="claude-sonnet-5">Sonnet 5</option>
+          <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+        </select>
+      </label>
+      <span class="spacer"></span>
+      <span class="meta" id="prMeta"></span>
+      <button class="btn" id="prRefresh">Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Pull request</th><th>Author</th><th>Reviews</th><th>AI review</th></tr></thead>
+        <tbody id="prBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="prEmpty">Loading active pull requests…</div>
+  </div>
+
+  <div class="card" id="leaderboardCard">
+    <div class="lb-controls">
+      <label class="field">Rank by
+        <select id="lbMetric">
+          <option value="score">Activity score</option>
+          <option value="reviewCount">PRs reviewed</option>
+          <option value="createdCount">PRs opened</option>
+          <option value="comments">Review comments</option>
+          <option value="pushCount">Pushes</option>
+        </select>
+      </label>
+      <label class="field">Show
+        <select id="lbTop">
+          <option value="10">Top 10</option>
+          <option value="25">Top 25</option>
+          <option value="0">Everyone</option>
+        </select>
+      </label>
+      <span class="weights" id="weights" title="Points per item in the activity score"></span>
+    </div>
+    <div class="lb" id="lb"></div>
+    <div class="empty" id="lbEmpty">Press <b>Scan repository</b> to build the leaderboard.</div>
+  </div>
+
+  <div class="card hidden" id="peopleCard">
+    <div class="toolbar">
+      <input type="search" id="filter" placeholder="Filter people…">
+      <div class="lookup">
+        <input type="search" id="lookup" placeholder="Look up anyone (incl. inactive)…" style="min-width:260px">
+        <div class="lookup-results" id="lookupResults"></div>
+      </div>
+      <span class="spacer"></span>
+      <button class="btn" id="csvBtn" disabled>Export CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="empty">Press <b>Scan repository</b> to load activity.</div>
+  </div>
+</main>
+
+<div class="tip" id="tip"></div>
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer"></aside>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>Settings</h2>
+    <label for="repoUrl">Repository URL</label>
+    <input type="text" id="repoUrl" spellcheck="false">
+    <div class="hint">Any link inside the repo works, e.g. …/DefaultCollection/Project/_git/repo/pullrequests</div>
+    <label>Authentication</label>
+    <div class="radio">
+      <label><input type="radio" name="auth" value="pat"> Personal Access Token</label>
+      <label><input type="radio" name="auth" value="git"> My git credentials (Windows login)</label>
+    </div>
+    <div id="patBox">
+      <label for="pat">Personal Access Token</label>
+      <input type="password" id="pat" autocomplete="off" spellcheck="false">
+      <div class="hint" id="patHint"></div>
+    </div>
+    <div class="hint" id="gitHint" style="display:none">Uses the credential git already has for this server (macOS Keychain), sent via NTLM/Negotiate.</div>
+    <label for="localRepo">Local clone (for AI reviews)</label>
+    <input type="text" id="localRepo" spellcheck="false">
+    <div class="hint">PR branches are fetched here and checked out in a separate worktree under ~/.cache/repo-activity. Your working copy is not touched.</div>
+    <label for="claudePath">Claude Code CLI</label>
+    <input type="text" id="claudePath" spellcheck="false">
+    <div class="actions">
+      <span class="status-line" id="testStatus"></span>
+      <button class="btn" id="testBtn">Test connection</button>
+      <button class="btn" id="cancelBtn">Close</button>
+      <button class="btn primary" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const APP_VERSION = "9";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let config = null, data = null, sort = {key: "lastActivity", dir: -1}, pollTimer = null;
+
+async function api(path, opts = {}) {
+  const init = {method: opts.body ? "POST" : (opts.method || "GET"), headers: {"X-Repo-Activity": "1"}};
+  if (opts.body) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(opts.body); }
+  const r = await fetch(path, init);
+  const j = await r.json().catch(() => ({error: "HTTP " + r.status}));
+  if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+  return j;
+}
+
+// ---------- dates
+const DAY = 864e5;
+function ago(iso) {
+  if (!iso) return "";
+  const d = (Date.now() - Date.parse(iso)) / DAY;
+  if (d < 1/24) return "just now";
+  if (d < 1) return Math.round(d * 24) + "h ago";
+  if (d < 45) return Math.round(d) + "d ago";
+  if (d < 365) return Math.round(d / 30.4) + "mo ago";
+  return (d / 365).toFixed(1) + "y ago";
+}
+function fmt(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString(undefined, {year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"});
+}
+function fmtDay(iso) { return iso ? new Date(iso).toLocaleDateString(undefined, {month: "short", day: "numeric", year: "numeric"}) : ""; }
+function freshness(iso) {
+  if (!iso) return "none";
+  const d = (Date.now() - Date.parse(iso)) / DAY;
+  return d <= 7 ? "fresh" : d <= 21 ? "stale" : "cold";
+}
+function relCell(iso) {
+  if (!iso) return `<span class="zero">—</span>`;
+  return `<span class="rel" title="${esc(fmt(iso))}"><span class="dot ${freshness(iso)}"></span>${esc(ago(iso))}<small>${esc(fmtDay(iso))}</small></span>`;
+}
+
+// ---------- avatars
+function initials(name) {
+  const p = String(name).replace(/\(.*?\)/g, "").trim().split(/\s+/);
+  return ((p[0] || "?")[0] + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase();
+}
+function avatar(name) {
+  let h = 0; for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return `<span class="avatar" style="background:hsl(${h % 360} 45% 48%)">${esc(initials(name))}</span>`;
+}
+
+// ---------- votes
+const VOTES = {"10": ["Approved", "good"], "5": ["Approved w/ suggestions", "good"], "0": ["No vote", "neutral"],
+  "-5": ["Waiting for author", "warn"], "-10": ["Rejected", "bad"]};
+function votePill(v) {
+  if (v === null || v === undefined) return `<span class="pill neutral">Commented</span>`;
+  const [l, c] = VOTES[String(v)] || ["Vote " + v, "neutral"];
+  return `<span class="pill ${c}">${esc(l)}</span>`;
+}
+
+// ---------- table
+const COLS = [
+  {key: "name", label: "Person", render: u => `<div class="who">${avatar(u.name)}<div><div class="n">${esc(u.name)}</div><div class="u">${esc(u.unique)}</div></div></div>`},
+  {key: "lastPush", label: "Last push", render: u => relCell(u.lastPush)},
+  {key: "pushCount", label: "Pushes", num: true},
+  {key: "pushRate", label: "Pushes / wk", num: true, render: u => rateCell(u.pushRate, data.avg.pushRate)},
+  {key: "createdCount", label: "PRs opened", num: true},
+  {key: "reviewCount", label: "PRs reviewed", num: true, render: u => u.reviewCount
+      ? `${u.reviewCount} <span class="pills">${u.approved ? `<span class="pill good" title="Approved">${u.approved}</span>` : ""}${u.waiting ? `<span class="pill warn" title="Waiting for author">${u.waiting}</span>` : ""}${u.rejected ? `<span class="pill bad" title="Rejected">${u.rejected}</span>` : ""}</span>`
+      : `<span class="zero">0</span>`},
+  {key: "reviewRate", label: "Reviews / wk", num: true, render: u => rateCell(u.reviewRate, data.avg.reviewRate)},
+  {key: "comments", label: "Review comments", num: true, deepOnly: true},
+  {key: "pendingCount", label: "Awaiting their review", num: true},
+  {key: "lastReview", label: "Last review", render: u => relCell(u.lastReview)},
+  {key: "lastActivity", label: "Last activity", render: u => relCell(u.lastActivity)},
+];
+const rate = v => v >= 10 ? v.toFixed(0) : v.toFixed(1);
+function vsAvg(v, avg) {
+  if (!avg) return "";
+  const r = v / avg;
+  return r >= 0.95 && r <= 1.05 ? "≈ team avg" : `${r.toFixed(1)}× team avg`;
+}
+function rateCell(v, avg) {
+  if (!v) return `<span class="zero">0</span>`;
+  return `<span class="rel">${rate(v)}<small>${esc(vsAvg(v, avg))}</small></span>`;
+}
+function visibleCols() { return COLS.filter(c => !c.deepOnly || (data && data.deep)); }
+
+function renderHead() {
+  $("#thead").innerHTML = visibleCols().map(c =>
+    `<th class="${c.num ? "num" : ""}" data-key="${c.key}">${esc(c.label)} <span class="arrow">${sort.key === c.key ? (sort.dir > 0 ? "▲" : "▼") : ""}</span></th>`).join("");
+}
+$("#thead").addEventListener("click", e => {
+  const th = e.target.closest("th"); if (!th) return;
+  const k = th.dataset.key;
+  sort = sort.key === k ? {key: k, dir: -sort.dir} : {key: k, dir: k === "name" ? 1 : -1};
+  renderTable();
+});
+
+function rows() {
+  if (!data) return [];
+  const f = $("#filter").value.trim().toLowerCase();
+  const list = data.users.filter(u => !f || (u.name + " " + u.unique).toLowerCase().includes(f));
+  const k = sort.key;
+  return list.sort((a, b) => {
+    let x = a[k], y = b[k];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1; if (y == null) return -1;
+    if (typeof x === "string") return x.localeCompare(y) * sort.dir;
+    return (x - y) * sort.dir;
+  });
+}
+
+function renderTable() {
+  renderHead();
+  const list = rows();
+  const cols = visibleCols();
+  $("#tbody").innerHTML = list.map(u => `<tr data-id="${esc(u.id)}">${cols.map(c => {
+    const v = c.render ? c.render(u) : (u[c.key] ? esc(u[c.key]) : `<span class="zero">0</span>`);
+    return `<td class="${c.num ? "num" : ""}">${v}</td>`;
+  }).join("")}</tr>`).join("");
+  $("#empty").style.display = list.length ? "none" : "block";
+  if (data && !list.length) $("#empty").textContent = "Nobody matches the filter.";
+}
+$("#tbody").addEventListener("click", e => {
+  const tr = e.target.closest("tr"); if (!tr) return;
+  const u = data.users.find(x => x.id === tr.dataset.id);
+  if (u) openUser(u);
+});
+$("#filter").addEventListener("input", renderTable);
+
+function renderTiles() {
+  if (!data) { $("#tiles").innerHTML = ""; return; }
+  const t = data.totals;
+  const noReviews = data.users.filter(u => !u.reviewCount && u.pushCount).length;
+  const tiles = [
+    [t.users, "People active"], [t.pushes, "Pushes"], [t.prsCreated, "PRs opened"],
+    [t.reviews, "PR reviews given"], [rate(data.avg.pushRate), "Avg pushes / person / week"],
+    [rate(data.avg.reviewRate), "Avg reviews / person / week"], [t.activePrs, "Open PRs now"], [noReviews, "Pushed but didn't review"],
+  ];
+  $("#tiles").innerHTML = tiles.map(([v, l]) => `<div class="tile"><div class="v">${v}</div><div class="l">${esc(l)}</div></div>`).join("");
+}
+
+// ---------- leaderboard
+const PARTS = [
+  {key: "reviewCount", label: "PRs reviewed", short: "PRs reviewed", color: "var(--s-reviews)", w: 3},
+  {key: "createdCount", label: "PRs opened", short: "PRs opened", color: "var(--s-created)", w: 3},
+  {key: "comments", label: "Review comments", short: "review comments", color: "var(--s-comments)", w: 1, deepOnly: true},
+  {key: "pushCount", label: "Pushes", short: "pushes", color: "var(--s-pushes)", w: 0.5},
+];
+let weights = Object.fromEntries(PARTS.map(p => [p.key, p.w]));
+try { Object.assign(weights, JSON.parse(localStorage.getItem("ra.weights") || "{}")); } catch {}
+const activeParts = () => PARTS.filter(p => !p.deepOnly || (data && data.deep));
+const scoreOf = u => activeParts().reduce((s, p) => s + (u[p.key] || 0) * (weights[p.key] || 0), 0);
+const num = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
+
+function renderWeights() {
+  const metric = $("#lbMetric").value;
+  const box = $("#weights");
+  if (metric !== "score") {
+    const p = PARTS.find(x => x.key === metric);
+    box.innerHTML = `<span><i style="background:${p.color}"></i>${esc(p.label)}</span>`;
+    return;
+  }
+  box.innerHTML = "Points each:" + activeParts().map(p =>
+    `<label><i style="background:${p.color}"></i>${esc(p.label)} <input type="number" min="0" step="0.5" data-k="${p.key}" value="${weights[p.key]}"></label>`).join("");
+}
+$("#weights").addEventListener("input", e => {
+  const k = e.target.dataset.k; if (!k) return;
+  weights[k] = Math.max(0, parseFloat(e.target.value) || 0);
+  try { localStorage.setItem("ra.weights", JSON.stringify(weights)); } catch {}
+  renderLeaderboard(false);
+});
+
+function renderLeaderboard(withControls = true) {
+  if (withControls) renderWeights();
+  if (!data) return;
+  const metric = $("#lbMetric").value;
+  const isScore = metric === "score";
+  const parts = isScore ? activeParts() : PARTS.filter(p => p.key === metric);
+  const val = u => isScore ? scoreOf(u) : (u[metric] || 0);
+  let list = data.users.map(u => ({u, v: val(u)})).filter(x => x.v > 0)
+    .sort((a, b) => b.v - a.v || a.u.name.localeCompare(b.u.name));
+  list.forEach((x, i) => x.rank = i && x.v === list[i - 1].v ? list[i - 1].rank : i + 1);  // ties share a rank
+  const top = +$("#lbTop").value;
+  if (top) list = list.slice(0, top);
+  $("#lbEmpty").style.display = list.length ? "none" : "block";
+  if (!list.length) { $("#lbEmpty").textContent = "No activity for this metric in the window."; $("#lb").innerHTML = ""; return; }
+  const max = list[0].v;
+  const medals = ["🥇", "🥈", "🥉"];
+  $("#lb").innerHTML = list.map(({u, v, rank}) => {
+    const segs = parts.map(p => {
+      const pts = (u[p.key] || 0) * (isScore ? weights[p.key] : 1);
+      if (!pts) return "";
+      return `<span style="flex:${pts} 1 0;background:${p.color}" data-tip="${esc(`<b>${u[p.key]}</b> ${p.label}${isScore ? ` × ${num(weights[p.key])} = <b>${num(pts)}</b> pts` : ""}`)}"></span>`;
+    }).join("");
+    const sub = PARTS.filter(p => !p.deepOnly || data.deep).map(p => `${u[p.key] || 0} ${p.short}`).join(" · ")
+      + ` — avg ${rate(u.pushRate)} pushes/wk, ${rate(u.reviewRate)} reviews/wk`;
+    return `<div class="lb-row" data-id="${esc(u.id)}">
+      <div class="rank ${rank <= 3 ? "top" : ""}">${rank <= 3 ? medals[rank - 1] : rank}</div>
+      <div class="who">${avatar(u.name)}<div style="min-width:0"><div class="n">${esc(u.name)}</div><div class="u">last active ${esc(ago(u.lastActivity))}</div></div></div>
+      <div class="lb-track"><div class="lb-bar" style="width:${(100 * v / max).toFixed(2)}%">${segs}</div><div class="lb-sub">${esc(sub)}</div></div>
+      <div class="score">${num(v)}<small>${isScore ? "pts" : esc(parts[0].short)}</small></div>
+    </div>`;
+  }).join("");
+}
+$("#lbMetric").addEventListener("change", () => renderLeaderboard());
+$("#lbTop").addEventListener("change", () => renderLeaderboard(false));
+$("#lb").addEventListener("click", e => {
+  const row = e.target.closest(".lb-row"); if (!row) return;
+  const u = data.users.find(x => x.id === row.dataset.id);
+  if (u) openUser(u);
+});
+$("#lb").addEventListener("mousemove", e => {
+  const seg = e.target.closest("[data-tip]"), tip = $("#tip");
+  if (!seg) { tip.style.display = "none"; return; }
+  tip.innerHTML = seg.dataset.tip;
+  tip.style.display = "block";
+  const x = Math.min(e.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = x + "px"; tip.style.top = (e.clientY + 16) + "px";
+});
+$("#lb").addEventListener("mouseleave", () => $("#tip").style.display = "none");
+
+document.querySelector(".tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]"); if (!b) return;
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  $("#leaderboardCard").classList.toggle("hidden", b.dataset.tab !== "leaderboard");
+  $("#peopleCard").classList.toggle("hidden", b.dataset.tab !== "people");
+  $("#prsCard").classList.toggle("hidden", b.dataset.tab !== "prs");
+  if (b.dataset.tab === "prs" && !activePrs) loadPrs();
+});
+
+// ---------- active PRs + AI review
+let activePrs = null, openReviewId = null;
+const VERDICTS = {approve: ["Looks good", "good"], approve_with_suggestions: ["Approve with suggestions", "good"],
+  needs_work: ["Needs work", "bad"]};
+const SEVERITY = {critical: "bad", major: "warn", minor: "neutral", nit: "neutral"};
+
+async function loadPrs() {
+  $("#prEmpty").style.display = "block"; $("#prEmpty").textContent = "Loading active pull requests…";
+  $("#prBody").innerHTML = "";
+  try {
+    activePrs = (await api("/api/prs")).value;
+    $("#prMeta").textContent = `${activePrs.length} open · loaded ${new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"})}`;
+    renderPrs();
+  } catch (e) { activePrs = null; $("#prEmpty").textContent = e.message; }
+}
+function reviewSummary(p) {
+  const people = p.reviewers.filter(r => !r.group);
+  const c = v => people.filter(r => r.vote === v || (v === 10 && r.vote === 5)).length;
+  const pills = [[c(10), "good", "approved"], [c(-5), "warn", "waiting for author"], [c(-10), "bad", "rejected"]]
+    .filter(x => x[0]).map(([n, cls, l]) => `<span class="pill ${cls}" title="${l}">${n} ${l.split(" ")[0]}</span>`).join(" ");
+  const names = p.reviewers.map(r => `${r.name}: ${(VOTES[String(r.vote)] || ["?"])[0]}`).join("\n");
+  return `<span title="${esc(names)}">${pills || `<span class="zero">no votes</span>`}</span>`;
+}
+function aiCell(p) {
+  if (runningReviews.has(p.id)) return `<span class="spin"></span> <span class="meta">reviewing…</span>`;
+  if (!p.ai) return `<button class="btn small primary" data-review="${p.id}">AI review</button>`;
+  if (p.ai.incomplete) return `<div class="ai-cell"><button class="btn small" data-open="${p.id}">View</button>
+    <span class="pill warn">Paused</span><button class="btn small primary" data-review="${p.id}">Continue</button></div>`;
+  const [l, cls] = VERDICTS[p.ai.verdict] || ["Reviewed", "neutral"];
+  return `<div class="ai-cell"><button class="btn small" data-open="${p.id}">View</button>
+    <span class="pill ${cls}">${esc(l)}</span><span class="meta">${p.ai.findings} findings${p.ai.outdated ? " · <b>outdated</b>" : ""}</span>
+    ${p.ai.outdated ? `<button class="btn small" data-review="${p.id}">Re-run</button>` : ""}</div>`;
+}
+function renderPrs() {
+  if (!activePrs) return;
+  const f = $("#prFilter").value.trim().toLowerCase();
+  const list = activePrs.filter(p => (!$("#hideDrafts").checked || !p.isDraft) &&
+    (!f || `${p.id} ${p.title} ${p.author} ${p.source} ${p.target}`.toLowerCase().includes(f)));
+  $("#prEmpty").style.display = list.length ? "none" : "block";
+  if (!list.length) $("#prEmpty").textContent = activePrs.length ? "No PRs match." : "No active pull requests.";
+  $("#prBody").innerHTML = list.map(p => `<tr data-pr="${p.id}">
+    <td class="wrap"><a class="pr-title" href="${esc(p.url)}" target="_blank" rel="noopener">${p.isDraft ? `<span class="draft">Draft</span>` : ""}!${p.id} ${esc(p.title)}</a>
+      <span class="pr-sub">${esc(p.source)} → ${esc(p.target)}${p.mergeStatus === "conflicts" ? " · ⚠ conflicts" : ""}</span></td>
+    <td><div class="n">${esc(p.author)}</div><div class="meta">${esc(ago(p.created))}</div></td>
+    <td>${reviewSummary(p)}</td>
+    <td>${aiCell(p)}</td></tr>`).join("");
+}
+$("#prFilter").addEventListener("input", renderPrs);
+$("#hideDrafts").addEventListener("change", renderPrs);
+$("#prRefresh").addEventListener("click", loadPrs);
+$("#reviewModel").addEventListener("change", async () => {
+  try { await api("/api/config", {body: {reviewModel: $("#reviewModel").value}}); config.reviewModel = $("#reviewModel").value; }
+  catch (e) { showError(e.message); }
+});
+$("#prBody").addEventListener("click", e => {
+  const run = e.target.closest("[data-review]"), view = e.target.closest("[data-open]");
+  if (run) { e.preventDefault(); startReview(+run.dataset.review); }
+  else if (view) { e.preventDefault(); showReview(+view.dataset.open); }
+});
+
+function showToast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+async function sendFollowup(id) {
+  const input = $("#askInput"), question = input ? input.value.trim() : "";
+  if (!question) return input && input.focus();
+  try { await api("/api/review/ask", {body: {id, question}}); }
+  catch (e) { return alert(e.message); }
+  watchReview(id);
+  showReview(id);
+}
+document.addEventListener("keydown", e => {
+  if (e.target.id === "askInput" && e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+    const b = document.querySelector("#drawer [data-ask]"); if (b) sendFollowup(+b.dataset.ask);
+  }
+});
+function prById(id) { return (activePrs || []).find(p => p.id === id) || {id, title: "", url: "#"}; }
+function reviewHead(p) {
+  return `<div class="drawer-head"><div style="flex:1;min-width:0"><div style="font-weight:650;font-size:16px">AI review · !${p.id}</div>
+    <div class="meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></div></div>
+    <button class="btn ghost" data-close>Close</button></div>`;
+}
+
+async function startReview(id) {
+  try { await api("/api/review", {body: {id}}); } catch (e) { return showError(e.message); }
+  watchReview(id);
+  showReview(id);
+}
+const runningReviews = new Set();
+async function fetchReview(id) {
+  try { return await api("/api/review?id=" + id); } catch (e) { return {finished: true, error: e.message, log: []}; }
+}
+// Polls a running review in the background; the drawer only re-renders while it shows that PR.
+function watchReview(id) {
+  if (runningReviews.has(id)) return;
+  runningReviews.add(id); renderPrs();
+  const tick = async () => {
+    const j = await fetchReview(id);
+    if (openReviewId === id) renderReview(prById(id), j);
+    if (!j.finished) return setTimeout(tick, 1200);
+    runningReviews.delete(id);
+    if (j.result) {  // refresh the row badge without reloading the list
+      const r = j.result.review || {};
+      prById(id).ai = {verdict: r.verdict, findings: (r.findings || []).length, outdated: false,
+        incomplete: !!j.result.incomplete, at: j.result.at};
+    }
+    renderPrs();
+  };
+  tick();
+}
+async function showReview(id) {
+  openReviewId = id;
+  const j = await fetchReview(id);
+  if (openReviewId !== id) return;
+  renderReview(prById(id), j);
+  if (!j.finished) watchReview(id);
+}
+
+function richText(s) {
+  // Fenced code -> <pre>, `inline` -> <code>, everything else escaped.
+  return String(s || "").split(/```[a-zA-Z]*\n?/).map((part, i) => i % 2
+    ? `<pre>${esc(part.replace(/\n$/, ""))}</pre>`
+    : esc(part).replace(/`([^`]+)`/g, "<code>$1</code>")).join("");
+}
+function renderReview(p, j) {
+  const drawerOpen = $("#drawer").classList.contains("show");
+  const log = (j.log || []).map(l => `<div>${esc(l.m)}</div>`).join("");
+  let body;
+  if (!j.finished) {
+    body = `<p><span class="spin"></span> ${esc(j.stage)}…</p>
+      <div class="runlog" id="runlog">${log || "<div>Starting…</div>"}</div>
+      <div class="actions" style="margin-top:12px"><button class="btn" data-cancel="${p.id}">Cancel</button></div>
+      <p class="note">Claude runs read-only and reviews large PRs as bounded feature slices. Completed slices are checkpointed.</p>`;
+  } else if (j.error) {
+    body = `<div class="alert show">${esc(j.error)}</div>${log ? `<div class="runlog">${log}</div>` : ""}
+      <div style="margin-top:12px"><button class="btn primary" data-rerun="${p.id}">Try again</button></div>`;
+  } else if (!j.result) {
+    body = `<p class="note">Not reviewed yet.</p><button class="btn primary" data-rerun="${p.id}">Run AI review</button>`;
+  } else if (j.result.incomplete) {
+    const slices = j.result.slices || [], done = slices.filter(s => s.status === "done").length;
+    body = `<div class="alert show">Review paused after ${done} of ${slices.length} feature slices. Completed slices are saved.</div>
+      <div style="margin-top:12px"><button class="btn primary" data-rerun="${p.id}">Continue review</button></div>
+      <p class="note">${(j.result.skippedFiles || []).length} low-signal files were skipped${j.result.projectContext
+        ? ` · project context ${j.result.projectContext.reused ? "reused" : "generated and cached"}` : ""}.</p>`;
+  } else {
+    const r = j.result.review || {}, fs = r.findings || [];
+    const [vl, vc] = VERDICTS[r.verdict] || ["Review", "neutral"];
+    const counts = ["critical", "major", "minor", "nit"].map(s => [s, fs.filter(f => f.severity === s).length]).filter(x => x[1]);
+    const outdated = p.ai && p.ai.outdated;
+    body = `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <span class="pill ${vc}" style="font-size:13px;padding:3px 10px">${esc(vl)}</span>
+        ${counts.map(([s, n]) => `<span class="pill ${SEVERITY[s]}">${n} ${s}</span>`).join("")}
+        <span class="spacer"></span>
+        <button class="btn small" data-copy>Copy as markdown</button>
+        <button class="btn small primary" data-post="${p.id}" ${outdated ? "disabled title=\"Re-run first: the PR has new commits\"" : ""}>Post to PR…</button>
+        <button class="btn small" data-rerun="${p.id}">Re-run</button>
+      </div>
+      ${outdated ? `<div class="alert show" style="background:var(--warn-weak);color:var(--warn)">New commits were pushed after this review. Re-run to review the latest code.</div>` : ""}
+      <div class="summary">${richText(r.summary)}</div>
+      <label class="toggle post-pick" style="margin-top:8px">${j.result.summaryPosted
+        ? `<span class="pill good">Summary posted ✓</span>`
+        : `<input type="checkbox" data-pick-summary checked> Include this summary as a PR comment`}</label>
+      <h3>Findings</h3>
+      ${fs.length ? fs.map((f, i) => `<div class="finding">
+        <div class="fh">${f.posted
+            ? `<span class="pill good" title="Posted ${esc(fmt(f.posted.at))}">Posted ✓</span>`
+            : `<input type="checkbox" data-pick="${i}" ${f.severity === "nit" ? "" : "checked"} title="Post this finding to the PR">`}
+          <span class="pill ${SEVERITY[f.severity] || "neutral"}">${esc(f.severity || "note")}</span>
+          <span class="ft">${esc(f.title)}</span>${f.fromFollowup ? ` <span class="pill neutral" title="Added by follow-up #${f.fromFollowup}">follow-up #${f.fromFollowup}</span>` : ""}</div>
+        ${f.file ? `<a class="loc" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.file)}${f.line ? ":" + esc(f.line) : ""}</a>` : ""}
+        <p>${richText(f.detail)}</p>
+        ${f.suggestion ? `<p><b>Suggestion:</b> ${richText(f.suggestion)}</p>` : ""}
+      </div>`).join("") : `<p class="note">No issues found.</p>`}
+      <p class="note">Reviewed commit ${esc((j.result.sourceCommit || "").slice(0, 10))} · ${esc(fmt(j.result.at))}${(j.result.slices || []).length ? ` · ${(j.result.slices || []).length} feature slices` : ""}${(j.result.skippedFiles || []).length ? ` · ${(j.result.skippedFiles || []).length} low-signal files skipped` : ""}${j.result.projectContext ? ` · project context ${j.result.projectContext.reused ? "reused" : "generated and cached"}` : ""}${j.result.durationMs ? ` · ${Math.round(j.result.durationMs / 1000)}s` : ""}${j.result.model ? ` · ${esc(j.result.model)}` : ""}${j.result.turns ? ` · ${j.result.turns} turns` : ""}${j.result.costUsd ? ` · $${j.result.costUsd.toFixed(2)}` : ""}</p>
+      <h3>Follow-up</h3>
+      ${(j.result.followups || []).map((q, n) => `<div class="qa">
+        <div class="q"><b>You:</b> ${esc(q.q)}</div>
+        <div class="a">${richText(q.a)}</div>
+        <div class="note">#${n + 1} · ${esc(fmt(q.at))}${q.model ? ` · ${esc(q.model)}` : ""}${q.newFindings ? ` · <b>${q.newFindings} new finding${q.newFindings > 1 ? "s" : ""} added above</b>` : ""}${q.costUsd ? ` · $${q.costUsd.toFixed(2)}` : ""}</div>
+      </div>`).join("")}
+      <textarea id="askInput" rows="3" placeholder="Ask about this review, e.g. “Review features/pfm and features/home in depth and report more issues” or “Is finding 2 really a problem?”  (⌘/Ctrl+Enter to send)"></textarea>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+        <button class="btn primary small" data-ask="${p.id}">Ask</button>
+        <span class="note" style="margin:0">Continues the same Claude session when possible, read-only. New issues it finds are added to the findings so you can post them.</span>
+      </div>`;
+  }
+  const scroll = $("#drawer").scrollTop;
+  openDrawer(reviewHead(p) + `<div class="drawer-body">${body}</div>`);
+  if (drawerOpen) $("#drawer").scrollTop = scroll;
+  const rl = $("#runlog"); if (rl) rl.scrollTop = rl.scrollHeight;
+  $("#drawer").dataset.review = JSON.stringify(j.result || null);
+}
+$("#drawer").addEventListener("click", async e => {
+  const cancel = e.target.closest("[data-cancel]"), rerun = e.target.closest("[data-rerun]"), copy = e.target.closest("[data-copy]");
+  if (cancel) { await api("/api/review/cancel", {body: {id: +cancel.dataset.cancel}}).catch(() => {}); }
+  if (rerun) startReview(+rerun.dataset.rerun);
+  const ask = e.target.closest("[data-ask]");
+  if (ask) sendFollowup(+ask.dataset.ask);
+  const post = e.target.closest("[data-post]");
+  if (post) {
+    const id = +post.dataset.post;
+    const picks = [...document.querySelectorAll("#drawer [data-pick]:checked")].map(x => +x.dataset.pick);
+    const summary = !!document.querySelector("#drawer [data-pick-summary]:checked");
+    if (!picks.length && !summary) return alert("Tick at least one finding or the summary to post.");
+    const what = [picks.length ? `${picks.length} finding comment${picks.length > 1 ? "s" : ""}` : "", summary ? "the summary" : ""].filter(Boolean).join(" and ");
+    if (!confirm(`Post ${what} to PR !${id} on TFS?\n\nThey are posted under your account (the saved PAT) and everyone on the PR will see them. Finding comments open as Active threads.`)) return;
+    post.disabled = true; post.textContent = "Posting…";
+    try {
+      const res = await api("/api/review/post", {body: {id, findings: picks, summary}});
+      renderReview(prById(id), {finished: true, result: res.record, log: []});
+      showToast(`Posted ${res.posted} comment${res.posted === 1 ? "" : "s"} to !${id}`);
+    } catch (err) {
+      post.disabled = false; post.textContent = "Post to PR…";
+      alert("Posting failed: " + err.message);
+      showReview(id);  // re-read: comments that did get posted are marked
+    }
+  }
+  if (copy) {
+    const res = JSON.parse($("#drawer").dataset.review || "null"); if (!res) return;
+    const r = res.review || {};
+    const md = [`## AI review: !${res.pr} ${res.title}`, "", `**Verdict:** ${(VERDICTS[r.verdict] || [r.verdict || "n/a"])[0]}`, "", r.summary || "", "",
+      ...(r.findings || []).map(f => `### [${f.severity}] ${f.title}\n\`${f.file}${f.line ? ":" + f.line : ""}\`\n\n${f.detail || ""}${f.suggestion ? `\n\n**Suggestion:** ${f.suggestion}` : ""}\n`)].join("\n");
+    await navigator.clipboard.writeText(md);
+    copy.textContent = "Copied ✓"; setTimeout(() => copy.textContent = "Copy as markdown", 1500);
+  }
+});
+
+// ---------- scan
+function showError(msg) { const a = $("#alert"); a.textContent = msg || ""; a.classList.toggle("show", !!msg); }
+
+async function startScan() {
+  showError("");
+  $("#scanBtn").disabled = true;
+  $("#progress").classList.add("show");
+  $("#progressText").textContent = "Starting…";
+  try {
+    const {id} = await api("/api/scan", {body: {days: +$("#days").value, deep: $("#deep").checked}});
+    poll(id);
+  } catch (e) { scanDone(); showError(e.message); }
+}
+function scanDone() { $("#scanBtn").disabled = false; $("#progress").classList.remove("show"); clearTimeout(pollTimer); }
+async function poll(id) {
+  try {
+    const j = await api("/api/job?id=" + id);
+    const bar = $("#bar");
+    $("#progressText").textContent = j.total ? `${j.stage} — ${j.done} / ${j.total} pull requests` : j.stage + "…";
+    bar.classList.toggle("indeterminate", !j.total);
+    bar.firstElementChild.style.width = j.total ? (100 * j.done / j.total) + "%" : "";
+    if (j.finished) {
+      scanDone();
+      if (j.error) { showError(j.error); if (/auth|token|PAT|credential/i.test(j.error)) openSettings(); return; }
+      setData(j.result);
+      return;
+    }
+  } catch (e) { scanDone(); showError(e.message); return; }
+  pollTimer = setTimeout(() => poll(id), 700);
+}
+function setData(d) {
+  data = d;
+  const weeks = d.days / 7;
+  for (const u of data.users) {
+    u.pendingCount = u.pending.length;
+    u.pushRate = u.pushCount / weeks;
+    u.reviewRate = u.reviewCount / weeks;
+  }
+  // Team averages over people who did that kind of work at all (idle reviewers don't drag the push average down).
+  const avgOf = (k, cnt) => { const xs = data.users.filter(u => u[cnt] > 0); return xs.length ? xs.reduce((s, u) => s + u[k], 0) / xs.length : 0; };
+  data.avg = {pushRate: avgOf("pushRate", "pushCount"), reviewRate: avgOf("reviewRate", "reviewCount")};
+  const commentsOpt = $("#lbMetric option[value=comments]");
+  commentsOpt.disabled = !d.deep;
+  if (!d.deep && commentsOpt.selected) $("#lbMetric").value = "score";
+  $("#csvBtn").disabled = false;
+  $("#scanMeta").textContent = `Scanned ${fmt(d.generatedAt)} · ${d.deep ? "exact review dates" : "fast mode: reviews dated by PR"}`;
+  renderTiles(); renderTable(); renderLeaderboard();
+}
+$("#scanBtn").addEventListener("click", startScan);
+
+// ---------- drawer
+function prLine(p, extra = "", date = "") {
+  if (!p) return "";
+  return `<div class="item"><div class="main"><a class="t" href="${esc(p.url)}" target="_blank" rel="noopener">!${p.id} ${esc(p.title)}</a>
+    <span class="s">${esc(p.author)}${p.status ? " · " + esc(p.status) : ""}</span></div>${extra}<span class="d">${esc(date)}</span></div>`;
+}
+function listOr(items, emptyText) {
+  return items.length ? `<div class="list">${items.join("")}</div>` : `<p class="note">${esc(emptyText)}</p>`;
+}
+function openDrawer(html) {
+  $("#drawer").innerHTML = html;
+  $("#drawer").classList.add("show"); $("#drawerBg").classList.add("show");
+  $("#drawer").scrollTop = 0;
+}
+function closeDrawer() { openReviewId = null; $("#drawer").classList.remove("show"); $("#drawerBg").classList.remove("show"); }
+$("#drawerBg").addEventListener("click", closeDrawer);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDrawer(); closeSettings(); $("#lookupResults").classList.remove("show"); } });
+$("#drawer").addEventListener("click", e => { if (e.target.closest("[data-close]")) closeDrawer(); });
+
+function drawerHead(name, unique) {
+  return `<div class="drawer-head">${avatar(name)}<div style="flex:1;min-width:0"><div style="font-weight:650;font-size:16px">${esc(name)}</div>
+    <div class="meta">${esc(unique)}</div></div><button class="btn ghost" data-close>Close</button></div>`;
+}
+
+function openUser(u) {
+  const prs = data.prs;
+  const reviews = u.reviews.map(r => prLine(prs[r.pr], `${votePill(r.vote)}${r.comments ? ` <span class="pill neutral">${r.comments} 💬</span>` : ""}`,
+    (r.approx ? "~" : "") + fmtDay(r.date)));
+  const created = u.created.map(id => prLine(prs[id], "", fmtDay(prs[id] && prs[id].created)));
+  const pending = u.pending.map(id => prLine(prs[id], "", fmtDay(prs[id] && prs[id].created)));
+  const pushes = u.pushes.slice(0, 60).map(p => `<div class="item"><div class="main"><span class="t">${esc(p.refs.join(", ") || "(no ref info)")}</span></div>
+    <span class="d" title="${esc(fmt(p.date))}">${esc(fmt(p.date))}</span></div>`);
+  openDrawer(drawerHead(u.name, u.unique) + `<div class="drawer-body">
+    <div class="stats">
+      <div class="stat"><div class="v">${esc(u.lastPush ? ago(u.lastPush) : "—")}</div><div class="l">Last push (in window)</div></div>
+      <div class="stat"><div class="v" id="allTimePush">…</div><div class="l">Last push (all time)</div></div>
+      <div class="stat"><div class="v">${esc(u.lastReview ? ago(u.lastReview) : "—")}</div><div class="l">Last review</div></div>
+      <div class="stat"><div class="v">${u.pushCount}</div><div class="l">Pushes · ${u.branches} branches</div></div>
+      <div class="stat"><div class="v">${u.reviewCount}</div><div class="l">PRs reviewed</div></div>
+      <div class="stat"><div class="v">${u.createdCount}</div><div class="l">PRs opened</div></div>
+      <div class="stat"><div class="v">${rate(u.pushRate)} <span class="meta">/ wk</span></div><div class="l">Avg pushes · ${esc(vsAvg(u.pushRate, data.avg.pushRate) || "no team data")}</div></div>
+      <div class="stat"><div class="v">${rate(u.reviewRate)} <span class="meta">/ wk</span></div><div class="l">Avg PR reviews · ${esc(vsAvg(u.reviewRate, data.avg.reviewRate) || "no team data")}</div></div>
+      <div class="stat"><div class="v">${u.createdCount ? (u.reviewCount / u.createdCount).toFixed(1) : "—"}</div><div class="l">Reviews per own PR</div></div>
+    </div>
+    <h3>Reviews · last ${data.days} days</h3>${listOr(reviews, "No reviews in this window.")}
+    ${data.deep ? "" : `<p class="note">Fast mode: “~” dates are the PR's close/creation date, not the vote date. Enable exact review dates for precision.</p>`}
+    <h3>Awaiting their review (open PRs, no vote yet)</h3>${listOr(pending, "Nothing pending.")}
+    <h3>PRs opened</h3>${listOr(created, "No PRs opened in this window.")}
+    <h3>Pushes</h3>${listOr(pushes, "No pushes in this window.")}
+    ${u.pushes.length > 60 ? `<p class="note">Showing 60 of ${u.pushes.length}.</p>` : ""}
+  </div>`);
+  loadAllTime(u.id);
+}
+
+async function loadAllTime(id) {
+  try {
+    const d = await api(`/api/user?id=${encodeURIComponent(id)}&days=${data ? data.days : +$("#days").value}`);
+    const el = $("#allTimePush");
+    if (el) { const lp = d.lastPushAllTime; el.textContent = lp ? ago(lp.date) : "never"; if (lp) el.title = fmt(lp.date) + " · " + lp.refs.join(", "); }
+    return d;
+  } catch (e) { const el = $("#allTimePush"); if (el) { el.textContent = "?"; el.title = e.message; } }
+}
+
+// Lookup: works for people with no activity in the scanned window too.
+let lookupTimer = null;
+$("#lookup").addEventListener("input", () => {
+  clearTimeout(lookupTimer);
+  const q = $("#lookup").value.trim();
+  if (q.length < 2) { $("#lookupResults").classList.remove("show"); return; }
+  lookupTimer = setTimeout(async () => {
+    const box = $("#lookupResults");
+    box.innerHTML = `<div class="meta">Searching…</div>`; box.classList.add("show");
+    try {
+      const {value} = await api("/api/lookup?q=" + encodeURIComponent(q));
+      box.innerHTML = value.length ? value.map(i => `<div data-id="${esc(i.id)}" data-name="${esc(i.name)}" data-unique="${esc(i.unique)}">
+        <b>${esc(i.name)}</b> <span class="meta">${esc(i.unique)}${i.active ? "" : " · inactive"}</span></div>`).join("")
+        : `<div class="meta">No matches.</div>`;
+    } catch (e) { box.innerHTML = `<div class="meta">${esc(e.message)}</div>`; }
+  }, 350);
+});
+$("#lookupResults").addEventListener("click", e => {
+  const d = e.target.closest("[data-id]"); if (!d) return;
+  $("#lookupResults").classList.remove("show");
+  const inScan = data && data.users.find(u => u.id === d.dataset.id);
+  if (inScan) return openUser(inScan);
+  openLookedUp(d.dataset.id, d.dataset.name, d.dataset.unique);
+});
+document.addEventListener("click", e => { if (!e.target.closest(".lookup")) $("#lookupResults").classList.remove("show"); });
+
+async function openLookedUp(id, name, unique) {
+  const days = +$("#days").value;
+  openDrawer(drawerHead(name, unique) + `<div class="drawer-body"><p class="note">Loading…</p></div>`);
+  try {
+    const d = await api(`/api/user?id=${encodeURIComponent(id)}&days=${days}`);
+    const lp = d.lastPushAllTime;
+    openDrawer(drawerHead(name, unique) + `<div class="drawer-body">
+      <div class="stats">
+        <div class="stat"><div class="v" title="${esc(lp ? fmt(lp.date) : "")}">${esc(lp ? ago(lp.date) : "never")}</div><div class="l">Last push (all time)</div></div>
+        <div class="stat"><div class="v">${d.reviews.length}</div><div class="l">PRs reviewed · ${days}d</div></div>
+        <div class="stat"><div class="v">${d.created.length}</div><div class="l">PRs opened · ${days}d</div></div>
+      </div>
+      ${lp ? `<p class="note">Last push ${esc(fmt(lp.date))} to ${esc(lp.refs.join(", ") || "?")}</p>` : ""}
+      <h3>Reviews · last ${days} days</h3>${listOr(d.reviews.map(p => prLine(p, votePill(p.vote), "~" + fmtDay(p.closed || p.created))), "No reviews in this window.")}
+      <p class="note">Only PRs where they were added as a named reviewer; dates are PR close/creation dates.</p>
+      <h3>Awaiting their review</h3>${listOr(d.pending.map(p => prLine(p, "", fmtDay(p.created))), "Nothing pending.")}
+      <h3>PRs opened</h3>${listOr(d.created.map(p => prLine(p, "", fmtDay(p.created))), "No PRs opened in this window.")}
+    </div>`);
+  } catch (e) {
+    openDrawer(drawerHead(name, unique) + `<div class="drawer-body"><p class="note" style="color:var(--bad)">${esc(e.message)}</p></div>`);
+  }
+}
+
+// ---------- CSV
+$("#csvBtn").addEventListener("click", () => {
+  const head = ["Name", "Account", "Last push", "Pushes", "Pushes / week", "Branches", "PRs opened", "PRs reviewed", "Reviews / week", "Approved",
+    "Waiting for author", "Rejected", "Review comments", "Awaiting their review", "Last review", "Last activity"];
+  const lines = [head].concat(rows().map(u => [u.name, u.unique, u.lastPush, u.pushCount, u.pushRate.toFixed(2), u.branches, u.createdCount,
+    u.reviewCount, u.reviewRate.toFixed(2), u.approved, u.waiting, u.rejected, data.deep ? u.comments : "", u.pendingCount, u.lastReview, u.lastActivity]));
+  const csv = lines.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"}));
+  a.download = `${data.repo.repo}-activity-${data.days}d-${data.generatedAt.slice(0, 10)}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+});
+
+// ---------- settings
+function authMode() { return document.querySelector("input[name=auth]:checked").value; }
+function syncAuthUi() {
+  const pat = authMode() === "pat";
+  $("#patBox").style.display = pat ? "" : "none";
+  $("#gitHint").style.display = pat ? "none" : "";
+}
+document.querySelectorAll("input[name=auth]").forEach(r => r.addEventListener("change", syncAuthUi));
+function openSettings() {
+  $("#repoUrl").value = config.repoUrl;
+  document.querySelector(`input[name=auth][value=${config.auth}]`).checked = true;
+  $("#localRepo").value = config.localRepo || "";
+  $("#localRepo").placeholder = config.localRepoDetected ? `Auto: ${config.localRepoDetected}` : "Path to your local clone";
+  $("#claudePath").value = config.claudePath || "";
+  $("#claudePath").placeholder = config.claudeDetected ? `Auto: ${config.claudeDetected}` : "Not found. Path to the claude binary";
+  $("#pat").value = "";
+  $("#pat").placeholder = config.hasPat ? "Saved in Keychain. Paste a new one to replace it" : "Paste token";
+  const tokenRoot = (config.repoUrl || "").split("/_git/")[0].replace(/\/[^/]+$/, "");
+  $("#patHint").innerHTML = tokenRoot
+    ? `Create one at <a href="${esc(tokenRoot + "/_usersSettings/tokens")}" target="_blank" rel="noopener">User settings → Personal access tokens</a> with scope <b>Code (Read)</b>. Stored in the macOS Keychain.`
+    : `Enter the repository URL, then provide a personal access token with <b>Code (Read)</b> scope. Stored in the macOS Keychain.`;
+  $("#testStatus").textContent = ""; $("#testStatus").className = "status-line";
+  syncAuthUi();
+  $("#modalBg").classList.add("show");
+}
+function closeSettings() { $("#modalBg").classList.remove("show"); }
+async function saveSettings() {
+  const body = {repoUrl: $("#repoUrl").value.trim(), auth: authMode(),
+    localRepo: $("#localRepo").value.trim(), claudePath: $("#claudePath").value.trim()};
+  if ($("#pat").value.trim()) body.pat = $("#pat").value.trim();
+  config = await api("/api/config", {body});
+  $("#pat").value = "";
+  renderRepoChip();
+}
+$("#settingsBtn").addEventListener("click", openSettings);
+$("#cancelBtn").addEventListener("click", closeSettings);
+$("#modalBg").addEventListener("click", e => { if (e.target === $("#modalBg")) closeSettings(); });
+$("#saveBtn").addEventListener("click", async () => {
+  try { await saveSettings(); closeSettings(); }
+  catch (e) { $("#testStatus").textContent = e.message; $("#testStatus").className = "status-line err"; }
+});
+$("#testBtn").addEventListener("click", async () => {
+  const s = $("#testStatus");
+  s.textContent = "Testing…"; s.className = "status-line";
+  try {
+    await saveSettings();
+    const r = await api("/api/test", {body: {}});
+    s.textContent = `✓ Connected: ${r.project} / ${r.name}`; s.className = "status-line ok";
+  } catch (e) { s.textContent = e.message; s.className = "status-line err"; }
+});
+
+function renderRepoChip() {
+  try {
+    const parts = decodeURIComponent(new URL(config.repoUrl).pathname).split("/").filter(Boolean);
+    const i = parts.indexOf("_git");
+    $("#repoChip").textContent = `${parts[i - 1]} / ${parts[i + 1]}`;
+  } catch { $("#repoChip").textContent = config.repoUrl; }
+}
+
+$("#quitBtn").addEventListener("click", async () => {
+  await api("/api/quit", {body: {}}).catch(() => {});
+  document.body.innerHTML = `<div class="empty">Repo Activity stopped. You can close this tab.</div>`;
+});
+
+(async function init() {
+  const ping = await api("/api/ping").catch(() => ({}));
+  if (ping.version !== APP_VERSION)
+    showError("Repo Activity was updated but an older copy is still running. Click Quit, then open the app again.");
+  config = await api("/api/config");
+  $("#days").value = String(config.days);
+  if (!$("#days").value) $("#days").value = "60";
+  $("#deep").checked = !!config.deep;
+  const mSel = $("#reviewModel");
+  if (config.claudeDefaultModel) mSel.options[0].text = `CLI default (${config.claudeDefaultModel})`;
+  if (config.reviewModel && ![...mSel.options].some(o => o.value === config.reviewModel))
+    mSel.add(new Option(config.reviewModel, config.reviewModel));
+  mSel.value = config.reviewModel || "";
+  renderRepoChip(); renderHead(); renderWeights();
+  if (!config.repoUrl || (config.auth === "pat" && !config.hasPat)) openSettings();
+  setInterval(() => api("/api/heartbeat", {body: {}}).catch(() => {}), 60000);
+})();
+</script>
+</body>
+</html>
