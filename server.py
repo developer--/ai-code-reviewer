@@ -666,7 +666,11 @@ REVIEW_TOOLS = "Read,Grep,Glob,Bash(git diff:*),Bash(git log:*),Bash(git show:*)
 
 
 def claude_cmd(claude, prompt, model):
+    # The CLI runs inside the PR's checkout, so the PR author controls .claude/ and .mcp.json there.
+    # Load only the user's own settings: project hooks, permission rules, skills or MCP servers from an
+    # untrusted PR would otherwise run commands on this machine.
     cmd = [claude, "-p", prompt, "--output-format", "stream-json", "--verbose",
+           "--setting-sources", "user", "--strict-mcp-config", "--disable-slash-commands",
            "--allowedTools", REVIEW_TOOLS, "--disallowedTools", "Edit,Write,NotebookEdit,WebFetch,WebSearch",
            "--max-turns", "80"]
     if model:
